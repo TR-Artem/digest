@@ -1,0 +1,45 @@
+name: Публикация на GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Получить код
+        uses: actions/checkout@v4
+      - name: Установить Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Установить зависимости
+        run: npm ci
+      - name: Проверить код линтером
+        run: npm run lint -- --deny-warnings
+      - name: Запустить тесты
+        run: npm test
+      - name: Собрать сайт
+        run: npm run build
+      - name: Упаковать папку dist
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Опубликовать
+        id: deployment
+        uses: actions/deploy-pages@v4
